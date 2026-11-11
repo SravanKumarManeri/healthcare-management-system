@@ -1,0 +1,415 @@
+{
+  "info": {
+    "_postman_id": "c8f2b1d0-99c1-4b72-b5e2-6385db1f9488",
+    "name": "Healthcare Management System (HMS) API",
+    "description": "Comprehensive Postman collection for CarePulse Healthcare Management System covering Authentication, Patient Registration, Doctor Availability, Concurrency-Safe Appointments, Clinical Consultations, e-Prescriptions, and Pharmacy FEFO Dispensing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctor_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "patient_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "appointment_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "prescription_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "medicine_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication & Users",
+      "item": [
+        {
+          "name": "Patient Self-Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"new.patient\",\n  \"email\": \"new.patient@example.com\",\n  \"password\": \"PatientPass123!\",\n  \"first_name\": \"Oliver\",\n  \"last_name\": \"Twist\",\n  \"phone\": \"+1-555-0811\",\n  \"date_of_birth\": \"1996-04-12\",\n  \"gender\": \"MALE\",\n  \"address\": \"48 Doughty St, London\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/register/", "host": ["{{base_url}}"], "path": ["auth", "register", ""] }
+          }
+        },
+        {
+          "name": "Obtain JWT Token (Login as Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access) {",
+                  "    pm.collectionVariables.set('access_token', jsonData.access);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refresh);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"AdminPass123!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/token/", "host": ["{{base_url}}"], "path": ["auth", "token", ""] }
+          }
+        },
+        {
+          "name": "Refresh JWT Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/token/refresh/", "host": ["{{base_url}}"], "path": ["auth", "token", "refresh", ""] }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/me/", "host": ["{{base_url}}"], "path": ["auth", "me", ""] }
+          }
+        },
+        {
+          "name": "Admin - List System Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/users/", "host": ["{{base_url}}"], "path": ["auth", "users", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Doctors & Availability",
+      "item": [
+        {
+          "name": "List Departments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/departments/", "host": ["{{base_url}}"], "path": ["departments", ""] }
+          }
+        },
+        {
+          "name": "List Active Doctors",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/doctors/", "host": ["{{base_url}}"], "path": ["doctors", ""] }
+          }
+        },
+        {
+          "name": "Get Doctor Availability Slots for Date",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/doctors/{{doctor_id}}/availability/?date=2026-11-15",
+              "host": ["{{base_url}}"],
+              "path": ["doctors", "{{doctor_id}}", "availability", ""],
+              "query": [{ "key": "date", "value": "2026-11-15" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Patients",
+      "item": [
+        {
+          "name": "List / Search Patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/patients/", "host": ["{{base_url}}"], "path": ["patients", ""] }
+          }
+        },
+        {
+          "name": "Register Walk-in Patient (Staff)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"David\",\n  \"last_name\": \"Copperfield\",\n  \"phone\": \"+1-555-0919\",\n  \"email\": \"david.c@demo.org\",\n  \"gender\": \"MALE\",\n  \"blood_group\": \"A+\",\n  \"address\": \"Blunderstone Rookery, Suffolk\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/patients/", "host": ["{{base_url}}"], "path": ["patients", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Appointments",
+      "item": [
+        {
+          "name": "List Appointments (Role Scoped)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/appointments/", "host": ["{{base_url}}"], "path": ["appointments", ""] }
+          }
+        },
+        {
+          "name": "Book Appointment (Concurrency Safe)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient\": {{patient_id}},\n  \"doctor\": {{doctor_id}},\n  \"appointment_date\": \"2026-11-20\",\n  \"start_time\": \"10:00:00\",\n  \"end_time\": \"10:30:00\",\n  \"reason_for_visit\": \"Postman API scheduled consultation\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/appointments/", "host": ["{{base_url}}"], "path": ["appointments", ""] }
+          }
+        },
+        {
+          "name": "Check In Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/appointments/{{appointment_id}}/check-in/", "host": ["{{base_url}}"], "path": ["appointments", "{{appointment_id}}", "check-in", ""] }
+          }
+        },
+        {
+          "name": "Reschedule Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointment_date\": \"2026-11-21\",\n  \"start_time\": \"11:00:00\",\n  \"end_time\": \"11:30:00\",\n  \"reason\": \"Rescheduled via Postman test\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/appointments/{{appointment_id}}/reschedule/", "host": ["{{base_url}}"], "path": ["appointments", "{{appointment_id}}", "reschedule", ""] }
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Cancelled via Postman test\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/appointments/{{appointment_id}}/cancel/", "host": ["{{base_url}}"], "path": ["appointments", "{{appointment_id}}", "cancel", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Consultations & Prescriptions",
+      "item": [
+        {
+          "name": "Create Clinical Consultation Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointment\": {{appointment_id}},\n  \"symptoms_or_history\": \"Patient presenting with intermittent low-grade fever and mild fatigue.\",\n  \"examination_notes\": \"Chest clear, heart sounds normal, throat mildly congested.\",\n  \"diagnosis\": \"Mild viral pharyngitis [Demo Data]\",\n  \"advice\": \"Hydration, rest, return if high fever occurs.\",\n  \"follow_up_date\": \"2026-11-28\",\n  \"status\": \"FINAL\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/consultations/", "host": ["{{base_url}}"], "path": ["consultations", ""] }
+          }
+        },
+        {
+          "name": "Create Prescription with Items",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient\": {{patient_id}},\n  \"notes\": \"Take after meals with water.\",\n  \"items\": [\n    {\n      \"medicine\": {{medicine_id}},\n      \"dosage_instructions\": \"1 tablet twice a day\",\n      \"frequency\": \"BD\",\n      \"duration\": \"5 days\",\n      \"quantity\": 10,\n      \"notes\": \"With food\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/prescriptions/", "host": ["{{base_url}}"], "path": ["prescriptions", ""] }
+          }
+        },
+        {
+          "name": "List Prescriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/prescriptions/", "host": ["{{base_url}}"], "path": ["prescriptions", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Pharmacy & Inventory",
+      "item": [
+        {
+          "name": "List Medicines Catalogue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/medicines/", "host": ["{{base_url}}"], "path": ["medicines", ""] }
+          }
+        },
+        {
+          "name": "Receive Stock Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicine_id\": {{medicine_id}},\n  \"batch_number\": \"BCH-PM-2026-001\",\n  \"expiry_date\": \"2027-10-31\",\n  \"quantity\": 200,\n  \"reference\": \"PO-POSTMAN-2026\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/pharmacy/stock/receive/", "host": ["{{base_url}}"], "path": ["pharmacy", "stock", "receive", ""] }
+          }
+        },
+        {
+          "name": "Get Low Stock & Expiry Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/pharmacy/low-stock/", "host": ["{{base_url}}"], "path": ["pharmacy", "low-stock", ""] }
+          }
+        },
+        {
+          "name": "Dispense Prescription (FEFO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/pharmacy/prescriptions/{{prescription_id}}/dispense/", "host": ["{{base_url}}"], "path": ["pharmacy", "prescriptions", "{{prescription_id}}", "dispense", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Dashboards",
+      "item": [
+        {
+          "name": "Admin Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/dashboards/admin/", "host": ["{{base_url}}"], "path": ["dashboards", "admin", ""] }
+          }
+        },
+        {
+          "name": "Doctor Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/dashboards/doctor/", "host": ["{{base_url}}"], "path": ["dashboards", "doctor", ""] }
+          }
+        },
+        {
+          "name": "Receptionist Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/dashboards/reception/", "host": ["{{base_url}}"], "path": ["dashboards", "reception", ""] }
+          }
+        },
+        {
+          "name": "Pharmacy Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/dashboards/pharmacy/", "host": ["{{base_url}}"], "path": ["dashboards", "pharmacy", ""] }
+          }
+        },
+        {
+          "name": "Patient Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/dashboards/patient/", "host": ["{{base_url}}"], "path": ["dashboards", "patient", ""] }
+          }
+        }
+      ]
+    }
+  ]
+}
